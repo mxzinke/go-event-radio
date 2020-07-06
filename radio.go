@@ -8,16 +8,32 @@ import (
 	"time"
 )
 
+// Separator, by which the path gets spliced internally
+const PathSeparator string = "."
+
+// Some default priority for your usage
+const (
+	MIN    Priority = 0
+	LOW    Priority = 100
+	NORMAL Priority = 500
+	HIGH   Priority = 900
+	MAX    Priority = 1000
+)
+
 /* Represent a Channel where you can subscribe to. */
 type Channel struct {
-	parent    *Channel
-	path      string
-	listeners []*Listener
-	children  []*Channel
+	parent     *Channel
+	path       string
+	listeners  []*eventListener
+	dispatcher eventDispatcher
+	children   []*Channel
 }
 
-/* Listener is function which is executed when a event is dispatched through a channel */
-type Listener func(event *Event)
+/* Listener is function which is executed when a eventName is dispatched through a channel */
+type Listener func(event Event)
+
+/* A wrapper around Integer to represent Priority as an value (your value between 0 and 1000 */
+type Priority uint16
 
 /* Event holds the basic data structure which can be passed through the channels */
 type Event struct {
@@ -27,6 +43,18 @@ type Event struct {
 }
 
 var channelList []*Channel
+
+func FindChannel(path string) *Channel {
+	var foundChannel *Channel
+	for _, channel := range channelList {
+		if channel.path == path {
+			foundChannel = channel
+			break
+		}
+	}
+
+	return foundChannel
+}
 
 // Create a new Channel to work with it
 func NewChannel(path string) (*Channel, error) {
@@ -41,8 +69,9 @@ func NewChannel(path string) (*Channel, error) {
 	}
 
 	channel := &Channel{
-		parent: parentChannel,
-		path:   path,
+		parent:     parentChannel,
+		path:       path,
+		dispatcher: func(event Event) {},
 	}
 
 	registerChannel(channel)
@@ -63,6 +92,7 @@ func (c *Channel) GetPath() string {
 	return c.path
 }
 
+// Gets the parent channel of the current channel
 func (c *Channel) GetParent() *Channel {
 	return c.parent
 }
@@ -80,31 +110,19 @@ func registerChannel(newChannel *Channel) {
 	channelList = append(channelList, newChannel)
 }
 
-func findChannel(channelPath string) *Channel {
-	var foundChannel *Channel
-	for _, channel := range channelList {
-		if channel.path == channelPath {
-			foundChannel = channel
-			break
-		}
-	}
-
-	return foundChannel
-}
-
 func getParentChannelPath(channelPath string) string {
-	splicedPath := strings.Split(channelPath, ".")
+	splicedPath := strings.Split(channelPath, PathSeparator)
 	if len(splicedPath) <= 1 {
 		return ""
 	}
 
-	return strings.Join(splicedPath[:(len(splicedPath)-1)], ".")
+	return strings.Join(splicedPath[:(len(splicedPath)-1)], PathSeparator)
 }
 func findParentChannel(channelPath string) *Channel {
 	parentPath := getParentChannelPath(channelPath)
-	return findChannel(parentPath)
+	return FindChannel(parentPath)
 }
 
 func isChannelExisting(channelPath string) bool {
-	return findChannel(channelPath) != nil
+	return FindChannel(channelPath) != nil
 }
