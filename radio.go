@@ -8,28 +8,8 @@ import (
 	"time"
 )
 
-// Separator, by which the path gets spliced internally
-const DefaultPathSeparator string = "."
-
-/* A wrapper around Integer to represent Priority as an value (your value between 0 and 1000 */
-type Priority uint16
-
-// Some default priority for your usage
-const (
-	MIN    Priority = 0
-	LOW    Priority = 100
-	NORMAL Priority = 500
-	HIGH   Priority = 900
-	MAX    Priority = 1000
-)
-
-/* Represent a Channel where you can subscribe to. */
-type Channel struct {
-	parent     *Channel
-	path       string
-	listeners  []*eventListener
-	dispatcher eventDispatcher
-	children   []*Channel
+type Radio struct {
+	channelList []*Channel
 }
 
 /* Listener is function which is executed when a eventName is dispatched through a channel */
@@ -42,11 +22,41 @@ type Event struct {
 	payload   interface{}
 }
 
-var channelList []*Channel
+func NewRadio() (*Radio, error) {
+	return new(Radio), nil
+}
 
-func FindChannel(path string) *Channel {
+// Create a new Channel to work with it
+func (r *Radio) NewChannel(path string) (*Channel, error) {
+	if r.FindChannel(path) != nil {
+		return nil, errors.New(fmt.Sprintf("The channel with the path %s is already existing, try find to it instead.", path))
+	}
+
+	parentChannelPath := getParentChannelPath(path)
+	var parentChannel = r.findParentChannel(path)
+	if parentChannel == nil && parentChannelPath != "" {
+		parentChannel, _ = r.NewChannel(parentChannelPath)
+	}
+
+	channel := &Channel{
+		parent:     parentChannel,
+		path:       path,
+		dispatcher: func(event Event) {},
+	}
+
+	r.registerChannel(channel)
+
+	if parentChannel != nil {
+		parentChannel.addChildren(channel)
+	}
+
+	return channel, nil
+}
+
+// FindChannel does helps you finding the right Channel by it's path
+func (r *Radio) FindChannel(path string) *Channel {
 	var foundChannel *Channel
-	for _, channel := range channelList {
+	for _, channel := range r.channelList {
 		if channel.path == path {
 			foundChannel = channel
 			break
@@ -56,41 +66,23 @@ func FindChannel(path string) *Channel {
 	return foundChannel
 }
 
-// Create a new Channel to work with it
-func NewChannel(path string) (*Channel, error) {
-	if isChannelExisting(path) {
-		return nil, errors.New(fmt.Sprintf("The channel with the path %s is already existing, try listen to it instead.", path))
+// PRIVATE FUNC's
+
+func getParentChannelPath(channelPath string) string {
+	splicedPath := strings.Split(channelPath, DefaultPathSeparator)
+	if len(splicedPath) <= 1 {
+		return ""
 	}
 
-	parentChannelPath := getParentChannelPath(path)
-	var parentChannel = findParentChannel(parentChannelPath)
-	if parentChannel == nil && parentChannelPath != "" {
-		parentChannel, _ = NewChannel(parentChannelPath)
-	}
-
-	channel := &Channel{
-		parent:     parentChannel,
-		path:       path,
-		dispatcher: func(event Event) {},
-	}
-
-	registerChannel(channel)
-
-	if parentChannel != nil {
-		parentChannel.addChildren(channel)
-	}
-
-	return channel, nil
+	return strings.Join(splicedPath[:(len(splicedPath)-1)], DefaultPathSeparator)
 }
 
-// Returns the full path of the channel
-func (c *Channel) GetPath() string {
-	return c.path
+func (r *Radio) registerChannel(newChannel *Channel) {
+	r.channelList = append(r.channelList, newChannel)
 }
-
-// Gets the parent channel of the current channel
-func (c *Channel) GetParent() *Channel {
-	return c.parent
+func (r *Radio) findParentChannel(channelPath string) *Channel {
+	parentPath := getParentChannelPath(channelPath)
+	return r.FindChannel(parentPath)
 }
 
 func (c *Channel) addChildren(newChildren *Channel) {
@@ -100,22 +92,4 @@ func (c *Channel) addChildren(newChildren *Channel) {
 	}
 
 	c.children = append(c.children, newChildren)
-}
-func registerChannel(newChannel *Channel) {
-	channelList = append(channelList, newChannel)
-}
-func getParentChannelPath(channelPath string) string {
-	splicedPath := strings.Split(channelPath, DefaultPathSeparator)
-	if len(splicedPath) <= 1 {
-		return ""
-	}
-
-	return strings.Join(splicedPath[:(len(splicedPath)-1)], DefaultPathSeparator)
-}
-func findParentChannel(channelPath string) *Channel {
-	parentPath := getParentChannelPath(channelPath)
-	return FindChannel(parentPath)
-}
-func isChannelExisting(channelPath string) bool {
-	return FindChannel(channelPath) != nil
 }
