@@ -9,7 +9,10 @@ import (
 )
 
 // Separator, by which the path gets spliced internally
-const PathSeparator string = "."
+const DefaultPathSeparator string = "."
+
+/* A wrapper around Integer to represent Priority as an value (your value between 0 and 1000 */
+type Priority uint16
 
 // Some default priority for your usage
 const (
@@ -31,9 +34,6 @@ type Channel struct {
 
 /* Listener is function which is executed when a eventName is dispatched through a channel */
 type Listener func(event Event)
-
-/* A wrapper around Integer to represent Priority as an value (your value between 0 and 1000 */
-type Priority uint16
 
 /* Event holds the basic data structure which can be passed through the channels */
 type Event struct {
@@ -85,10 +85,6 @@ func NewChannel(path string) (*Channel, error) {
 
 // Returns the full path of the channel
 func (c *Channel) GetPath() string {
-	if c == nil {
-		return ""
-	}
-
 	return c.path
 }
 
@@ -105,24 +101,21 @@ func (c *Channel) addChildren(newChildren *Channel) {
 
 	c.children = append(c.children, newChildren)
 }
-
 func registerChannel(newChannel *Channel) {
 	channelList = append(channelList, newChannel)
 }
-
 func getParentChannelPath(channelPath string) string {
-	splicedPath := strings.Split(channelPath, PathSeparator)
+	splicedPath := strings.Split(channelPath, DefaultPathSeparator)
 	if len(splicedPath) <= 1 {
 		return ""
 	}
 
-	return strings.Join(splicedPath[:(len(splicedPath)-1)], PathSeparator)
+	return strings.Join(splicedPath[:(len(splicedPath)-1)], DefaultPathSeparator)
 }
 func findParentChannel(channelPath string) *Channel {
 	parentPath := getParentChannelPath(channelPath)
 	return FindChannel(parentPath)
 }
-
 func isChannelExisting(channelPath string) bool {
 	return FindChannel(channelPath) != nil
 }
