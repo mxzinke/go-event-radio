@@ -17,11 +17,10 @@ const (
 
 /* Represent a Channel where you can subscribe to. */
 type Channel struct {
-	parent     *Channel
-	name       string
-	listeners  []*eventListener
-	dispatcher eventDispatcher
-	children   []*Channel
+	parent    *Channel
+	name      string
+	listeners []*eventListener
+	children  []*Channel
 }
 
 // Returns the full name of the channel

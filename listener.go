@@ -5,19 +5,23 @@ import (
 	"time"
 )
 
+/* Listener is function which is executed when a eventName is dispatched through a channel */
+type Listener func(event Event)
+
 type eventListener struct {
 	eventName string
 	listener  Listener
 	priority  Priority
 }
 
-type eventDispatcher func(event Event)
-
 // Adds an listener on any eventName at this or on all parent channels
 func (c *Channel) OnEvent(listener Listener, priority Priority) {
 	c.listeners = append(c.listeners, &eventListener{
 		listener: listener,
 		priority: priority,
+	})
+	sort.Slice(c.listeners, func(i, j int) bool {
+		return c.listeners[i].priority > c.listeners[j].priority
 	})
 }
 
@@ -28,7 +32,9 @@ func (c *Channel) OnEventSpecific(eventName string, listener Listener, priority 
 		listener:  listener,
 		priority:  priority,
 	})
-	c.dispatcher = c.buildEventDispatcher()
+	sort.Slice(c.listeners, func(i, j int) bool {
+		return c.listeners[i].priority > c.listeners[j].priority
+	})
 }
 
 // Does fire an Event on the Channel and all sub-Channels
@@ -39,36 +45,19 @@ func (c *Channel) FireEvent(eventName string, payload interface{}) {
 		payload:   payload,
 	}
 
-	c.dispatcher(event)
+	c.dispatchEvent(event)
 }
 
-func (c *Channel) buildEventDispatcher() eventDispatcher {
-	listenersList := append(c.listeners, c.getChildrenListeners()...)
-	sort.Slice(listenersList, func(i, j int) bool {
-		return listenersList[i].priority > listenersList[j].priority
-	})
-
-	return func(event Event) {
-		for _, l := range listenersList {
-			if l.eventName == event.name {
-				go l.listener(event)
-			} else if l.eventName == "" {
-				go l.listener(event)
-			}
-		}
-	}
-}
-
-func (c *Channel) getChildrenListeners() []*eventListener {
-	var allListeners []*eventListener
-	for _, channel := range c.children {
-		if len(channel.children) > 0 {
-			allListeners = append(allListeners, channel.getChildrenListeners()...)
-			allListeners = append(allListeners, channel.listeners...)
-		} else {
-			allListeners = append(allListeners, channel.listeners...)
+func (c *Channel) dispatchEvent(event Event) {
+	for _, l := range c.listeners {
+		if l.eventName == event.name {
+			go l.listener(event)
+		} else if l.eventName == "" {
+			go l.listener(event)
 		}
 	}
 
-	return allListeners
+	for _, child := range c.children {
+		go child.dispatchEvent(event)
+	}
 }

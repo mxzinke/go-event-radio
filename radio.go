@@ -12,9 +12,6 @@ type Radio struct {
 	channelList []*Channel
 }
 
-/* Listener is function which is executed when a eventName is dispatched through a channel */
-type Listener func(event Event)
-
 /* Event holds the basic data structure which can be passed through the channels */
 type Event struct {
 	name      string
