@@ -19,6 +19,8 @@ type Event struct {
 	payload   interface{}
 }
 
+// Creates a new Radio
+// A Radio can have multiple channels in a tree structure
 func NewRadio() (*Radio, error) {
 	return new(Radio), nil
 }
