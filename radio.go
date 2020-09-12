@@ -29,41 +29,34 @@ func NewRadio() (*Radio, error) {
 // Create a new Channel to work with it
 func (r *Radio) NewChannel(path string) (*Channel, error) {
 	if r.FindChannel(path) != nil {
-		return nil, errors.New(fmt.Sprintf("The channel with the path %s is already existing, try find to it instead.", path))
+		return nil, errors.New(fmt.Sprintf("The channel with the name %s is already existing, try find to it instead.", path))
 	}
 
 	parentChannelPath := getParentChannelPath(path)
-	var parentChannel = r.findParentChannel(path)
+	var parentChannel = r.FindChannel(parentChannelPath)
 	if parentChannel == nil && parentChannelPath != "" {
+		// If the parent is not existing yet
 		parentChannel, _ = r.NewChannel(parentChannelPath)
 	}
 
+	channels := strings.Split(path, DefaultPathSeparator)
 	channel := &Channel{
-		parent:     parentChannel,
-		path:       path,
-		dispatcher: func(event Event) {},
+		parent: parentChannel,
+		name:   channels[len(channels)-1],
 	}
-
-	r.registerChannel(channel)
 
 	if parentChannel != nil {
 		parentChannel.addChildren(channel)
+	} else {
+		r.registerMainChannel(channel)
 	}
 
 	return channel, nil
 }
 
-// FindChannel does helps you finding the right Channel by it's path
+// FindChannel does helps you finding the right Channel by it's name
 func (r *Radio) FindChannel(path string) *Channel {
-	var foundChannel *Channel
-	for _, channel := range r.channelList {
-		if channel.path == path {
-			foundChannel = channel
-			break
-		}
-	}
-
-	return foundChannel
+	return findChannelPath(path, r.channelList)
 }
 
 // PRIVATE FUNC's
@@ -76,17 +69,36 @@ func getParentChannelPath(channelPath string) string {
 
 	return strings.Join(splicedPath[:(len(splicedPath)-1)], DefaultPathSeparator)
 }
+func findChannelPath(path string, channelList []*Channel) *Channel {
+	if len(channelList) == 0 {
+		return nil
+	}
 
-func (r *Radio) registerChannel(newChannel *Channel) {
-	r.channelList = append(r.channelList, newChannel)
+	channelNames := strings.Split(path, DefaultPathSeparator)
+
+	var foundChannel *Channel
+	for _, channel := range channelList {
+		if channel.name == channelNames[0] {
+			if len(channelNames) == 1 {
+				foundChannel = channel
+				break
+			}
+
+			restOfPath := strings.Join(channelNames[1:len(channelNames)-1], DefaultPathSeparator)
+			foundChannel = findChannelPath(restOfPath, channel.children)
+			break
+		}
+	}
+
+	return foundChannel
 }
-func (r *Radio) findParentChannel(channelPath string) *Channel {
-	parentPath := getParentChannelPath(channelPath)
-	return r.FindChannel(parentPath)
+
+func (r *Radio) registerMainChannel(newChannel *Channel) {
+	r.channelList = append(r.channelList, newChannel)
 }
 
 func (c *Channel) addChildren(newChildren *Channel) {
-	if c.path == newChildren.path {
+	if c.name == newChildren.name {
 		// Internally, that the same channel can never be added as a children to itself
 		log.Fatalln(fmt.Sprintf("You can't add the same channel to your own channel"))
 	}

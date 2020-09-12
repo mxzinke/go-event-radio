@@ -1,6 +1,6 @@
 package radio
 
-// Separator, by which the path gets spliced internally
+// Separator, by which the name gets spliced internally
 const DefaultPathSeparator string = "."
 
 /* A wrapper around Integer to represent Priority as an value (your value between 0 and 1000 */
@@ -18,15 +18,15 @@ const (
 /* Represent a Channel where you can subscribe to. */
 type Channel struct {
 	parent     *Channel
-	path       string
+	name       string
 	listeners  []*eventListener
 	dispatcher eventDispatcher
 	children   []*Channel
 }
 
-// Returns the full path of the channel
+// Returns the full name of the channel
 func (c *Channel) GetPath() string {
-	return c.path
+	return c.name
 }
 
 // Gets the parent channel of the current channel

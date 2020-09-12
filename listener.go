@@ -31,6 +31,7 @@ func (c *Channel) OnEventSpecific(eventName string, listener Listener, priority 
 	c.dispatcher = c.buildEventDispatcher()
 }
 
+// Does fire an Event on the Channel and all sub-Channels
 func (c *Channel) FireEvent(eventName string, payload interface{}) {
 	event := Event{
 		name:      eventName,
