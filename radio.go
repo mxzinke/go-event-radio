@@ -1,7 +1,6 @@
 package radio
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -25,17 +24,20 @@ func NewRadio() (*Radio, error) {
 	return new(Radio), nil
 }
 
-// Create a new Channel to work with it
-func (r *Radio) NewChannel(path string) (*Channel, error) {
-	if r.FindChannel(path) != nil {
-		return nil, errors.New(fmt.Sprintf("The channel with the name %s is already existing, try find to it instead.", path))
+// Create a new Channel for events.
+// If non is existing, it will create a new channel with parent channels.
+// If one is existing, it will give you the existing channel.
+func (r *Radio) Channel(path string) *Channel {
+	existing := findChannelPath(path, r.channelList)
+	if existing != nil {
+		return existing
 	}
 
 	parentChannelPath := getParentChannelPath(path)
-	var parentChannel = r.FindChannel(parentChannelPath)
+	var parentChannel = findChannelPath(parentChannelPath, r.channelList)
 	if parentChannel == nil && parentChannelPath != "" {
 		// If the parent is not existing yet
-		parentChannel, _ = r.NewChannel(parentChannelPath)
+		parentChannel = r.Channel(parentChannelPath)
 	}
 
 	channels := strings.Split(path, DefaultPathSeparator)
@@ -50,15 +52,10 @@ func (r *Radio) NewChannel(path string) (*Channel, error) {
 		r.registerMainChannel(channel)
 	}
 
-	return channel, nil
+	return channel
 }
 
-// FindChannel does helps you finding the right Channel by it's name
-func (r *Radio) FindChannel(path string) *Channel {
-	return findChannelPath(path, r.channelList)
-}
-
-// PRIVATE FUNC's
+// INTERNAL
 
 func getParentChannelPath(channelPath string) string {
 	splicedPath := strings.Split(channelPath, DefaultPathSeparator)

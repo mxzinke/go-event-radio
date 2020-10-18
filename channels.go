@@ -25,10 +25,19 @@ type Channel struct {
 
 // Returns the full name of the channel
 func (c *Channel) GetPath() string {
-	return c.name
+	return c.collectFullPath()
 }
 
 // Gets the parent channel of the current channel
 func (c *Channel) GetParent() *Channel {
 	return c.parent
+}
+
+// INTERNAL
+
+func (c *Channel) collectFullPath() string {
+	if c.parent == nil {
+		return c.name
+	}
+	return c.parent.collectFullPath() + "." + c.name
 }

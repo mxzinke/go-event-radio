@@ -3,7 +3,7 @@
 Radio is a small framework for managing an event base system on application level. You can easily notify another component
 of you application. It allows you to fire an event from one part of your application and spread it to different parts.
 
-Please feel free to enhance the framework by contributing. (Just fork it and make a PR!)
+Please feel free to enhance the framework by contributing.
 
 ## Basic Concepts of the Framework
 
