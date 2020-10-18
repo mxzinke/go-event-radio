@@ -9,7 +9,7 @@ import (
 /* Should return new channel object when creating new channel */
 func TestNewChannel(t *testing.T) {
 	testRadio, _ := radio.NewRadio()
-	channelName := "test-channel.new"
+	channelName := "test-channel:new"
 
 	channel := testRadio.Channel(channelName)
 
@@ -20,7 +20,7 @@ func TestNewChannel(t *testing.T) {
 /* Should return first channel without error, but second channel should return error */
 func TestNewChannelDuplicate(t *testing.T) {
 	testRadio, _ := radio.NewRadio()
-	channelPath := "test-channel.duplicate"
+	channelPath := "test-channel:duplicate"
 
 	channel1 := testRadio.Channel(channelPath)
 	channel2 := testRadio.Channel(channelPath)
@@ -36,7 +36,7 @@ func TestNewChannelDuplicate(t *testing.T) {
 /* Should return the correct channel name / path */
 func TestGetChannelName(t *testing.T) {
 	testRadio, _ := radio.NewRadio()
-	channelName := "test-channel.name"
+	channelName := "test-channel:name"
 
 	channel := testRadio.Channel(channelName)
 	actualChannelName := channel.GetPath()
@@ -48,9 +48,9 @@ func TestGetChannelName(t *testing.T) {
 /* Should return correct parent channels (after creating it recursively) */
 func TestGetChannelParentRecursively(t *testing.T) {
 	testRadio, _ := radio.NewRadio()
-	channelName := "organization.system.subsystem.parent.channel"
-	parentChannelName := "organization.system.subsystem.parent"
-	subsystemChannelName := "organization.system.subsystem"
+	channelName := "organization:system:subsystem:parent:channel"
+	parentChannelName := "organization:system:subsystem:parent"
+	subsystemChannelName := "organization:system:subsystem"
 
 	channel := testRadio.Channel(channelName)
 

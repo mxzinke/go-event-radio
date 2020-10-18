@@ -1,7 +1,7 @@
 package radio
 
 // Separator, by which the name gets spliced internally
-const DefaultPathSeparator string = "."
+const DefaultPathSeparator string = ":"
 
 /* A wrapper around Integer to represent Priority as an value (your value between 0 and 1000 */
 type Priority uint16
@@ -39,5 +39,5 @@ func (c *Channel) collectFullPath() string {
 	if c.parent == nil {
 		return c.name
 	}
-	return c.parent.collectFullPath() + "." + c.name
+	return c.parent.collectFullPath() + DefaultPathSeparator + c.name
 }
